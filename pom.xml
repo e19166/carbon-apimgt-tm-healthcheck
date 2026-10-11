@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ~ Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com) All Rights Reserved.
+ ~
+ ~ Licensed under the Apache License, Version 2.0 (the "License");
+ ~ you may not use this file except in compliance with the License.
+ ~ You may obtain a copy of the License at
+ ~
+ ~      http://www.apache.org/licenses/LICENSE-2.0
+ ~
+ ~ Unless required by applicable law or agreed to in writing, software
+ ~ distributed under the License is distributed on an "AS IS" BASIS,
+ ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ ~ See the License for the specific language governing permissions and
+ ~ limitations under the License.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        This project is deliberately NOT a reactor submodule of carbon-apimgt (no <parent> pointing at
+        it) - it is built, versioned, and released on its own schedule, and only ever talks to
+        carbon-apimgt/carbon-health-check through OSGi Import-Package at runtime (never by compiling
+        against carbon-apimgt source). All dependencies below are therefore pinned to real, released
+        version numbers rather than inherited from a shared parent POM's <dependencyManagement>.
+    -->
+    <groupId>org.wso2.carbon.apimgt</groupId>
+    <artifactId>org.wso2.carbon.apimgt.tm.healthcheck</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>bundle</packaging>
+
+    <name>WSO2 Carbon - API Management Traffic Manager Control Plane Connectivity Health Check</name>
+    <description>
+        Standalone OSGi bundle providing a carbon-health-check HealthChecker implementation that reports
+        Traffic Manager connectivity to the Control Plane's Event Hub dependency (throttling data,
+        message broker, and management/REST connections). Built and released independently of
+        carbon-apimgt so it can be delivered as a single-jar repository/components/dropins/ hotfix.
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <!--
+            IMPORTANT: these two properties pin which released carbon-apimgt build this bundle is
+            compiled/packaged against. Update them to match whatever carbon-apimgt version is actually
+            running on the target product pack before building a release of this bundle - do not point
+            them at a carbon-apimgt SNAPSHOT that only exists inside a local reactor build, since that
+            version will not be resolvable from a real Maven repository.
+        -->
+        <carbon.apimgt.version>9.33.192</carbon.apimgt.version>
+        <carbon.apimgt.imp.pkg.version>[9.0.0, 10.0.0)</carbon.apimgt.imp.pkg.version>
+
+        <carbon.healthcheck.version>1.4.0</carbon.healthcheck.version>
+        <carbon.healthcheck.imp.pkg.version>[1.4.0, 2.0.0)</carbon.healthcheck.imp.pkg.version>
+
+        <carbon.analytics.common.version>5.4.9</carbon.analytics.common.version>
+        <databridge.agent.range>[5.1,6)</databridge.agent.range>
+
+        <imp.package.version.osgi.framework>[1.6.0, 2.0.0)</imp.package.version.osgi.framework>
+        <imp.package.version.osgi.service>[1.3.0, 2.0.0)</imp.package.version.osgi.service>
+
+        <apache.felix.scr.ds.annotations.version>1.2.4</apache.felix.scr.ds.annotations.version>
+        <maven-bundle-plugin.version>3.3.0</maven-bundle-plugin.version>
+        <maven.checkstyle.plugin.version>3.0.0</maven.checkstyle.plugin.version>
+        <maven.spotbugsplugin.version>4.8.2.0</maven.spotbugsplugin.version>
+        <jacoco.version>0.8.4</jacoco.version>
+        <junit.version>4.13.1</junit.version>
+        <mockito.version>2.23.4</mockito.version>
+    </properties>
+
+    <dependencies>
+        <!-- All four of these are already independent, already-running OSGi bundles on the target
+             product (carbon-health-check, carbon-apimgt.impl, carbon-apimgt.common.jms,
+             carbon.databridge.agent) - "provided" scope because this bundle never bundles them into its
+             own jar, it only compiles against their API and imports them at runtime via OSGi. -->
+        <dependency>
+            <groupId>org.wso2.carbon.healthcheck</groupId>
+            <artifactId>org.wso2.carbon.healthcheck.api.core</artifactId>
+            <version>${carbon.healthcheck.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.apimgt</groupId>
+            <artifactId>org.wso2.carbon.apimgt.impl</artifactId>
+            <version>${carbon.apimgt.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.apimgt</groupId>
+            <artifactId>org.wso2.carbon.apimgt.common.jms</artifactId>
+            <version>${carbon.apimgt.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.analytics-common</groupId>
+            <artifactId>org.wso2.carbon.databridge.agent</artifactId>
+            <version>${carbon.analytics.common.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.ds-annotations</artifactId>
+            <version>${apache.felix.scr.ds.annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${maven-bundle-plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Bundle-Version>${project.version}</Bundle-Version>
+                        <Private-Package>
+                            org.wso2.carbon.apimgt.tm.healthcheck.internal.*
+                        </Private-Package>
+                        <Import-Package>
+                            org.apache.commons.logging.*,
+                            org.osgi.framework.*;version="${imp.package.version.osgi.framework}",
+                            org.osgi.service.component.*;version="${imp.package.version.osgi.service}",
+                            org.wso2.carbon.healthcheck.api.core.*;version="${carbon.healthcheck.imp.pkg.version}",
+                            org.wso2.carbon.apimgt.impl.*;version="${carbon.apimgt.imp.pkg.version}",
+                            org.wso2.carbon.apimgt.common.jms.*;version="${carbon.apimgt.imp.pkg.version}",
+                            org.wso2.carbon.databridge.agent.*;version="${databridge.agent.range}",
+                            org.wso2.carbon.databridge.commons.*;version="${databridge.agent.range}",
+                            *;resolution:=optional
+                        </Import-Package>
+                        <Export-Package>
+                            !org.wso2.carbon.apimgt.tm.healthcheck.internal.*,
+                            org.wso2.carbon.apimgt.tm.healthcheck.*;version="${project.version}"
+                        </Export-Package>
+                        <DynamicImport-Package>*</DynamicImport-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven.checkstyle.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>compile</phase>
+                        <configuration>
+                            <configLocation>${project.basedir}/checkstyle.xml</configLocation>
+                            <suppressionsLocation>${project.basedir}/suppressions.xml</suppressionsLocation>
+                            <encoding>UTF-8</encoding>
+                            <consoleOutput>true</consoleOutput>
+                            <failsOnError>true</failsOnError>
+                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            <excludes>**/gen/**/*</excludes>
+                        </configuration>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${maven.spotbugsplugin.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <spotbugsXmlOutputDirectory>${project.build.directory}/spotbugs</spotbugsXmlOutputDirectory>
+                    <excludeFilterFile>${project.basedir}/spotbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>analyze-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
